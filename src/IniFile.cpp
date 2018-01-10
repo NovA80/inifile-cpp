@@ -195,6 +195,11 @@ namespace ini
             comment_.resize(n);
     }
 
+    bool IniSection::hasField(const std::string &key) const
+    {
+        return (find(key) != end());
+    }
+
     /************************************
      *          IniFile
      ************************************/

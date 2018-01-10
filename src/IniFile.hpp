@@ -48,12 +48,17 @@ namespace ini
     {
     private:
         std::string comment_;
+
     public:
         IniSection() { }
         ~IniSection() { }
 
         const std::string& getComment() const;
         void setComment(const std::string& comment);
+
+        bool hasField(const std::string &key) const {
+            return (find(key) != end());
+        }
     };
 
     class IniFile: public std::map<std::string, IniSection>
@@ -70,6 +75,10 @@ namespace ini
 
         void setFieldSep(const char sep);
         void setCommentChar(const char comment);
+
+        bool hasSection(const std::string &sec) const {
+            return (find(sec) != end());
+        }
 
         void decode(std::istream &is);
         void decode(const std::string &content);
