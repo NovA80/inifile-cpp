@@ -247,10 +247,8 @@ namespace ini
                 // line is a field definition
                 // check if section was already opened
                 if(currentSection == NULL) {
-                    std::stringstream ss;
-                    ss << "l" << lineNo
-                       << ": ini parsing failed, field has no section";
-                    throw std::logic_error(ss.str());
+                    // field has no section -> create one with empty name
+                    currentSection = &((*this)[""]);
                 }
 
                 // find key value separator
@@ -285,7 +283,9 @@ namespace ini
         IniFile::iterator it;
         // iterate through all sections in this file
         for(it = this->begin(); it != this->end(); it++) {
-            os << "[" << it->first << "]" << std::endl;
+            if( ! it->first.empty() )
+                os << "[" << it->first << "]" << std::endl;
+
             IniSection::iterator secIt;
             // iterate through all fields in the section
             for(secIt = it->second.begin(); secIt != it->second.end(); secIt++)
