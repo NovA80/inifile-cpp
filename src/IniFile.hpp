@@ -19,6 +19,7 @@ namespace ini
     {
     private:
         std::string value_;
+        std::string comment_;
     public:
         IniField();
         IniField(const std::string &value);
@@ -31,6 +32,7 @@ namespace ini
         double asDouble() const;
         float asFloat() const;
         bool asBool() const;
+        const std::string& getComment() const;
 
         IniField &operator=(const IniField &field);
         IniField &operator=(const int value);
@@ -39,25 +41,31 @@ namespace ini
         IniField &operator=(const float value);
         IniField &operator=(const bool value);
         IniField &operator=(const std::string &value);
+        void setComment(const std::string& comment);
     };
 
     class IniSection: public std::map<std::string, IniField>
     {
+    private:
+        std::string comment_;
     public:
         IniSection() { }
         ~IniSection() { }
+
+        const std::string& getComment() const;
+        void setComment(const std::string& comment);
     };
 
     class IniFile: public std::map<std::string, IniSection>
     {
     private:
         char fieldSep_;
-        char comment_;
+        char commentChar_;
     public:
-        IniFile(const char fieldSep = '=', const char comment = '#');
+        IniFile(const char fieldSep = '=', const char comment = ';');
         IniFile(const std::string &fileName, const char fieldSep = '=',
-                const char comment = '#');
-        IniFile(std::istream &is, const char fieldSep = '=', const char comment = '#');
+                const char comment = ';');
+        IniFile(std::istream &is, const char fieldSep = '=', const char comment = ';');
         ~IniFile();
 
         void setFieldSep(const char sep);

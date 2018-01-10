@@ -65,13 +65,13 @@ namespace ini
     }
 
     IniField::IniField(const std::string &value)
-        : value_(value)
+        : value_(value), comment_("")
     {
 
     }
 
     IniField::IniField(const IniField &field)
-        : value_(field.value_)
+        : value_(field.value_), comment_(field.comment_)
     {
     }
 
@@ -162,24 +162,57 @@ namespace ini
         return *this;
     }
 
+    void IniField::setComment(const std::string& comment)
+    {
+        comment_ = comment;
+
+        // cut last '\n'
+        const std::size_t n = comment.length() - 1;
+        if( comment[n] == '\n' )
+            comment_.resize(n);
+    }
+
+    const std::string& IniField::getComment() const
+    {
+        return comment_;
+    }
+
+    /************************************
+     *          IniSection
+     ************************************/
+
+    const std::string& IniSection::getComment() const
+    {
+        return comment_;
+    }
+
+    void IniSection::setComment(const std::string& comment)
+    {
+        comment_ = comment;
+        // cut last '\n'
+        const std::size_t n = comment.length() - 1;
+        if( comment[n] == '\n' )
+            comment_.resize(n);
+    }
+
     /************************************
      *          IniFile
      ************************************/
 
     IniFile::IniFile(const char fieldSep, const char comment)
-        : fieldSep_(fieldSep), comment_(comment)
+        : fieldSep_(fieldSep), commentChar_(comment)
     {
     }
 
     IniFile::IniFile(const std::string &fileName, const char fieldSep,
                      const char comment)
-        : fieldSep_(fieldSep), comment_(comment)
+        : fieldSep_(fieldSep), commentChar_(comment)
     {
         load(fileName);
     }
 
     IniFile::IniFile(std::istream &is, const char fieldSep, const char comment)
-        : fieldSep_(fieldSep), comment_(comment)
+        : fieldSep_(fieldSep), commentChar_(comment)
     {
         decode(is);
     }
@@ -195,7 +228,7 @@ namespace ini
 
     void IniFile::setCommentChar(const char comment)
     {
-        comment_ = comment;
+        commentChar_ = comment;
     }
 
     void IniFile::decode(std::istream &is)
@@ -203,6 +236,7 @@ namespace ini
         clear();
         int lineNo = 0;
         IniSection *currentSection = NULL;
+        std::string currentComment;
         // iterate file by line
         while(!is.eof() && !is.fail()) {
             std::string line;
@@ -212,10 +246,10 @@ namespace ini
             // skip if line is empty
             if(line.size() == 0)
                 continue;
-            // skip if line is a comment
-            if(line[0] == comment_)
-                continue;
-            if(line[0] == '[') {
+            // if line is a comment append to comment lines
+            if(line[0] == commentChar_) {
+                currentComment += line.substr(1, std::string::npos) + "\n";
+            } else if(line[0] == '[') {
                 // line is a section
                 // check if the section is also closed on same line
                 std::size_t pos = line.find("]");
@@ -229,7 +263,7 @@ namespace ini
                 if(pos == 1) {
                     std::stringstream ss;
                     ss << "l" << lineNo
-                       << ": ini parsing failed, section is empty";
+                       << ": ini parsing failed, section name is empty";
                     throw std::logic_error(ss.str());
                 }
                 // check if there is a newline following closing bracket
@@ -243,6 +277,10 @@ namespace ini
                 // retrieve section name
                 std::string secName = line.substr(1, pos - 1);
                 currentSection = &((*this)[secName]);
+                if( ! currentComment.empty() ) {
+                    currentSection->setComment(currentComment);
+                    currentComment.clear();
+                }
             } else {
                 // line is a field definition
                 // check if section was already opened
@@ -261,7 +299,13 @@ namespace ini
                 // retrieve field name and value
                 std::string name = line.substr(0, pos);
                 std::string value = line.substr(pos + 1, std::string::npos);
-                (*currentSection)[name] = value;
+
+                IniField& field = (*currentSection)[name];
+                field = value;
+                if( ! currentComment.empty() ) {
+                    field.setComment(currentComment);
+                    currentComment.clear();
+                }
             }
         }
     }
@@ -282,15 +326,22 @@ namespace ini
     {
         IniFile::iterator it;
         // iterate through all sections in this file
-        for(it = this->begin(); it != this->end(); it++) {
+        for(it = this->begin(); it != this->end(); ++it) {
+            if( ! it->second.getComment().empty() )
+                os << ";" << it->second.getComment() << std::endl;
             if( ! it->first.empty() )
                 os << "[" << it->first << "]" << std::endl;
 
             IniSection::iterator secIt;
             // iterate through all fields in the section
-            for(secIt = it->second.begin(); secIt != it->second.end(); secIt++)
+            for(secIt = it->second.begin(); secIt != it->second.end(); ++secIt) {
+                const std::string& comment = secIt->second.getComment();
+                if( ! comment.empty() )
+                    os << ";" << comment << std::endl;
+
                 os << secIt->first << fieldSep_ << secIt->second.asString()
                    << std::endl;
+            }
         }
     }
 
