@@ -24,7 +24,7 @@ TEST_CASE("parse empty file", "IniFile")
 
 TEST_CASE("parse comment only file", "IniFile")
 {
-    std::istringstream ss("# this is a comment");
+	std::istringstream ss("; this is a comment");
     ini::IniFile inif(ss);
 
     REQUIRE(inif.size() == 0);
@@ -109,12 +109,13 @@ TEST_CASE("parse field with custom field sep", "IniFile")
 
 TEST_CASE("parse with comment", "IniFile")
 {
-    std::istringstream ss("[Foo]\n# this is a test\nbar=bla");
+	std::istringstream ss("[Foo]\n; this is a test\nbar=bla");
     ini::IniFile inif(ss);
 
     REQUIRE(inif.size() == 1);
     REQUIRE(inif["Foo"].size() == 1);
     REQUIRE(inif["Foo"]["bar"].asString() == "bla");
+	REQUIRE(inif["Foo"]["bar"].getComment() == " this is a test");
 }
 
 TEST_CASE("parse with custom comment char", "IniFile")
@@ -125,6 +126,14 @@ TEST_CASE("parse with custom comment char", "IniFile")
     REQUIRE(inif.size() == 1);
     REQUIRE(inif["Foo"].size() == 1);
     REQUIRE(inif["Foo"]["bar"].asString() == "bla");
+}
+
+TEST_CASE("parse field without section", "IniFile")
+{
+	ini::IniFile inif;  inif.decode("bar=bla");
+
+	REQUIRE(inif.size() == 1);
+	REQUIRE(inif[""]["bar"].asString() == "bla");
 }
 
 TEST_CASE("save with bool fields", "IniFile")
@@ -165,6 +174,17 @@ TEST_CASE("save with custom field sep", "IniFile")
 
     std::string result = inif.encode();
     REQUIRE(result == "[Foo]\nbar1:true\nbar2:false\n");
+}
+
+TEST_CASE("save with comments", "IniFile")
+{
+	ini::IniFile inif;
+	inif["Foo"].setComment(" comment");
+	inif["Foo"]["bar1"] = 1.2;
+	inif["Foo"]["bar2"] = -2.4;
+
+	std::string result = inif.encode();
+	REQUIRE(result == "; comment\n[Foo]\nbar1=1.2\nbar2=-2.4\n");
 }
 
 /***************************************************
@@ -211,10 +231,4 @@ TEST_CASE("fail to parse as double", "IniFile")
     REQUIRE(inif.size() == 1);
     REQUIRE(inif["Foo"].size() == 1);
     REQUIRE_THROWS(inif["Foo"]["bar"].asDouble());
-}
-
-TEST_CASE("fail to parse field without section", "IniFile")
-{
-    ini::IniFile inif;
-    REQUIRE_THROWS(inif.decode("bar=bla"));
 }
