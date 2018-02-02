@@ -1,20 +1,10 @@
-# IniFileCpp ![](https://travis-ci.org/Rookfighter/inifile-cpp.svg?branch=master)
+# IniFileCpp
 
-IniFileCpp is a simple and easy to use ini file en- and decoder for C++.
+IniFileCpp is a simple and easy to use ini file en- and decoder for C++. It's a header-only fork of https://github.com/Rookfighter/inifile-cpp.
 
 ## Install
 
-You can either build a static library using the CMake building system by running
-
-```sh
-cd <path-to-repo>
-mkdir build
-cd build
-cmake ..
-make
-``` 
-
-or simply copy the source files into your project and compile them directly.
+Simply copy the single header file into your project and compile directly.
 
 ## Usage
 
@@ -48,7 +38,14 @@ int myInt = myIni["Foo"]["myInt"].asInt();
 double myDouble = myIni["Foo"]["myDouble"].asDouble();
 ```
 
-To create a ini file with IniCpp assign values to sections and fields. Supported types are:
+Any section and field may have an associated comment, which can be obtained using the `comment()` method.
+
+```cpp
+std::string mySectComment = myIni["Foo"].comment();
+std::string myFieldComment = myIni["Foo"]["Bar"].comment();
+```
+
+To create a ini file with IniCpp assign values and/or comments to sections and fields. Supported value types are:
 
 * std::string
 * int
@@ -68,6 +65,7 @@ int main()
 	
 	myIni["Foo"]["myInt"] = 1;
 	myIni["Foo"]["myStr"] = "Hello world";
+	myIni["Foo"]["myStr"].comment(" it's a comment");
 	myIni["Foo"]["myBool"] = true;
 	myIni["Bar"]["myDouble"] = 1.2;
 	

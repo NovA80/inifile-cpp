@@ -4,11 +4,10 @@
 
 EXE := test/TestIniFile.out
 
-SRCs := test/TestIniFile.cpp src/IniFile.cpp
-DEPs := test/catch.hpp
+SRCs := test/TestIniFile.cpp  src/IniFile.hpp
+DEPs := test/catch.hpp 
 
 CFLAGS += -g -O0 -Isrc
-
 #-------------------------
 
 .PHONY : all clean
@@ -16,7 +15,7 @@ CFLAGS += -g -O0 -Isrc
 all : $(EXE)
 
 $(EXE) : $(SRCs) | $(DEPs)
-	$(CXX) -o $@ $(CFLAGS) $^
+	$(CXX) -o $@  $(CFLAGS)  $(filter %.cpp,$(SRCs))
 
 $(DEPs) :
 	wget -O $@ https://github.com/catchorg/Catch2/releases/download/v1.12.0/catch.hpp
