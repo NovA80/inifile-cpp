@@ -3,13 +3,11 @@
 #
 
 EXE := test/TestIniFile.out
-OUTDIR := test
-INTDIR := $(OUTDIR)/obj
 
-VPATH := src test
+SRCs := test/TestIniFile.cpp src/IniFile.cpp
+DEPs := test/catch.hpp
+
 CFLAGS += -g -O0 -Isrc
-OBJS := $(notdir $(wildcard $(addsuffix /*.cpp, $(VPATH) ) ) )
-OBJS := $(addprefix $(INTDIR)/, $(OBJS:.cpp=.o) )
 
 #-------------------------
 
@@ -17,15 +15,11 @@ OBJS := $(addprefix $(INTDIR)/, $(OBJS:.cpp=.o) )
 
 all : $(EXE)
 
-$(EXE) : $(OBJS)
-	$(CXX) -o $@ $(LFLAGS) $^
+$(EXE) : $(SRCs) | $(DEPs)
+	$(CXX) -o $@ $(CFLAGS) $^
 
-$(INTDIR)/%.o : %.cpp | $(INTDIR)
-	$(CXX) -o $@  $(CFLAGS) -c $<
-
-# Create output and intermed dirs
-$(INTDIR) :
-	mkdir -p $@
+$(DEPs) :
+	wget -O $@ https://github.com/catchorg/Catch2/releases/download/v1.12.0/catch.hpp
 
 clean :
-	rm -r $(INTDIR) $(EXE)
+	rm -r $(EXE) $(DEPs)
