@@ -13,9 +13,17 @@
 #include <map>
 
 #include <sstream>
-#include <stdexcept>
 #include <fstream>
 #include <iostream>
+
+#include <stdexcept>
+
+#if defined(WIN32)
+	#include <string.h>
+	#define  strcasecmp  _stricmp
+#else
+	#include <strings.h>
+#endif
 
 namespace ini
 {
@@ -53,10 +61,6 @@ namespace ini
 		}
 
 		bool asBool() const {
-			#ifdef WIN32
-				#define  strcasecmp  _stricmp
-			#endif
-
 			const char* TRUE[4]  = { "true", "yes", "y", "1" };
 			const char* FALSE[4] = { "false", "no", "n", "0" };
 			for( short i = 0; i < 4; ++i ){
