@@ -70,7 +70,7 @@ namespace ini
 			return res.first->second;
 		}
 
-		size_t size() const {  return data_.size();  }
+		std::size_t size() const {  return data_.size();  }
 
 		bool member(const Tkey& k){
 			return data_.find(k) != data_.end();
@@ -89,7 +89,7 @@ namespace ini
 	{
 		std::string s_;
 
-		void trim_right(){	// Cuts last '\n'
+		void trim_eol(){	// Cuts last '\n'
 			const std::size_t n = s_.length() - 1;
 			if( s_[n] == '\n' )
 				s_.resize(n);
@@ -97,10 +97,10 @@ namespace ini
 	public:
 		IniComment(){ ; }
 		IniComment(const std::string& s) : s_(s) {
-			trim_right();
+			trim_eol();
 		}
 		IniComment& operator=(const std::string& s){
-			s_ = s;  trim_right();
+			s_ = s;  trim_eol();
 			return *this;
 		}
 
@@ -234,6 +234,21 @@ namespace ini
 		void decode(std::istream &is)
 		{
 			clear();
+
+			// Whitespace trimming
+			struct {
+				const char* WS;
+				void left(std::string& s){
+					s.erase(0, s.find_first_not_of(WS));
+				}
+				void right(std::string& s){
+					s.erase(s.find_last_not_of(WS) + 1);
+				}
+				void operator()(std::string& s){
+					left(s);   right(s);
+				}
+			} trim = { "\t \r" };
+
 			int lineNo = 0;
 			IniSection *cur_section = NULL;
 			std::string cur_comment;
@@ -242,7 +257,7 @@ namespace ini
 			while( is.good() ) // !is.eof() && !is.fail()
 			{
 				std::string line;
-				std::getline(is, line, '\n');
+				std::getline(is, line, '\n');   trim(line);
 				++lineNo;
 
 				if( line.empty() )  continue;
@@ -250,14 +265,14 @@ namespace ini
 				// if line is a comment append to comment lines
 				if(line[0] == commentChar_)
 				{
-					cur_comment += line.substr(1, std::string::npos) + "\n";
+					cur_comment += line.substr(1, line.npos) + "\n";
 				}
 				else if(line[0] == '[')
 				{
 					// line is a section
 					// check if the section is also closed on same line
 					std::size_t pos = line.find(']');
-					if(pos == std::string::npos) {
+					if(pos == line.npos) {
 						std::stringstream ss;
 						ss << "l" << lineNo
 						   << ": ini parsing failed, section not closed";
@@ -279,7 +294,7 @@ namespace ini
 					}
 
 					// retrieve section name
-					std::string secName = line.substr(1, pos - 1);
+					std::string secName = line.substr(1, pos - 1);   trim(secName);
 					cur_section = &((*this)[secName]);
 					cur_section->comment = cur_comment;   cur_comment.clear();
 				}
@@ -294,14 +309,14 @@ namespace ini
 
 					// find key value separator
 					std::size_t pos = line.find(fieldSep_);
-					if(pos == std::string::npos) {
+					if(pos == line.npos) {
 						std::stringstream ss;
 						ss << "l" << lineNo << ": ini parsing failed, no '=' found";
 						throw std::logic_error(ss.str());
 					}
 					// retrieve field name and value
-					std::string name = line.substr(0, pos);
-					std::string value = line.substr(pos + 1, std::string::npos);
+					std::string name = line.substr(0, pos);   trim.right(name);
+					std::string value = line.substr(pos + 1, line.npos);   trim.left(value);
 
 					IniField& field = (*cur_section)[name];
 					field = value;

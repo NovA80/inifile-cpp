@@ -60,6 +60,16 @@ TEST_CASE("parse section with duplicate field", "IniFile")
     REQUIRE(inif["Foo"]["bar"].asString() == "world");
 }
 
+TEST_CASE("parse with excessive spacing", "IniFile")
+{
+	std::istringstream ss(" [ Foo ] \r\n\t\r\n bar = hello world\r\n");
+	ini::IniFile inif(ss);
+
+	REQUIRE(inif.size() == 1);
+	REQUIRE(inif["Foo"].size() == 1);
+	REQUIRE(inif["Foo"]["bar"].asString() == "hello world");
+}
+
 TEST_CASE("parse field as double", "IniFile")
 {
     std::istringstream ss("[Foo]\nbar1=1.2\nbar2=1\nbar3=-2.4");
