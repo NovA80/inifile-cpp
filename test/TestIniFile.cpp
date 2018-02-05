@@ -187,6 +187,16 @@ TEST_CASE("save with comments", "IniFile")
 	REQUIRE(result == "; comment\n[Foo]\nbar1=1.2\nbar2=-2.4\n");
 }
 
+TEST_CASE("save keeping order", "IniFile")
+{
+	std::istringstream ss("[Foo]\nb=first\na=second\n");
+	ini::IniFile inif(ss);
+
+	std::string result = inif.encode();
+	REQUIRE(result == ss.str());
+}
+
+
 /***************************************************
  *                Failing Tests
  ***************************************************/

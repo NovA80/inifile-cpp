@@ -11,6 +11,7 @@
 #define INIFILE_HPP_
 
 #include <map>
+#include <vector>
 
 #include <sstream>
 #include <fstream>
@@ -27,6 +28,57 @@
 
 namespace ini
 {
+	// Map that keeps the insertion order
+	template<typename T>  class ordered_map {
+		typedef const std::string                    Tkey;
+		typedef std::map<Tkey, T>                    Tdata;
+		typedef typename std::map<Tkey,T>::iterator  Tdata_iter;
+		typedef std::vector<Tdata_iter>              Torder;
+		typedef typename Torder::iterator            Torder_iter;
+
+		Tdata data_;
+		Torder order_; // insertion order
+
+	public:
+		// Wrapper for iterator in Torder vector
+		class iterator {
+			Torder_iter it_;
+		public:
+			iterator(){ ; }
+			iterator(const Torder_iter& it) : it_(it){ ; }
+
+			bool operator==(const iterator& that){  return *it_ == *that.it_;  }
+			bool operator!=(const iterator& that){  return *it_ != *that.it_;  }
+
+			iterator& operator++(){  it_++;  return *this;  }
+			std::pair<Tkey, T>& operator*(){ return **it_; }
+			std::pair<Tkey, T>* operator->(){  return it_->operator->();  }
+		};
+		iterator begin(){  return iterator(order_.begin());  }
+		iterator end(){  return iterator(order_.end());  }
+
+		T& operator[](const std::string& s){
+			std::pair<Tdata_iter, bool> res =
+				data_.insert( std::make_pair(s, T()) );
+
+			if( res.second ) // new value was inserted
+				order_.push_back(res.first);
+
+			return res.first->second;
+		}
+
+		size_t size() const {  return data_.size();  }
+
+		bool member(const Tkey& k){
+			return data_.find(k) != data_.end();
+		}
+
+		void clear(){
+			data_.clear();
+			order_.clear();
+		}
+	};
+
 	/************************************
 	 *          IniField
 	 ************************************/
@@ -116,7 +168,7 @@ namespace ini
 	/************************************
 	 *          IniSection
 	 ************************************/
-	class IniSection : public std::map<std::string, IniField>
+	class IniSection : public ordered_map<IniField>
 	{
 	private:
 		std::string comment_;
@@ -135,10 +187,6 @@ namespace ini
 			if( comment[n] == '\n' )
 				comment_.resize(n);
 		}
-
-		bool hasField(const std::string &key) const {
-			return (find(key) != end());
-		}
 	};
 
 
@@ -146,7 +194,7 @@ namespace ini
 	 *          IniFile
 	 ************************************/
 
-	class IniFile: public std::map<std::string, IniSection>
+	class IniFile : public ordered_map<IniSection>
 	{
 	private:
 		char fieldSep_;
@@ -167,10 +215,6 @@ namespace ini
 		}
 
 		~IniFile(){ ; }
-
-		bool hasSection(const std::string &sec) const {
-			return ( find(sec) != end() );
-		}
 
 		void decode(std::istream &is) {
 			clear();
@@ -268,11 +312,11 @@ namespace ini
 				IniSection::iterator secIt;
 				// iterate through all fields in the section
 				for(secIt = it->second.begin(); secIt != it->second.end(); ++secIt) {
-					const std::string& comment = secIt->second.comment();
-					if( ! comment.empty() )
-						os << ";" << comment << std::endl;
+					const IniField& field = secIt->second;
+					if( ! field.comment().empty() )
+						os << "; " << field.comment() << std::endl;
 
-					os << secIt->first << fieldSep_ << secIt->second.asString()
+					os << secIt->first << fieldSep_ << field.asString()
 					   << std::endl;
 				}
 			}
