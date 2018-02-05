@@ -96,23 +96,23 @@ namespace ini
 		}
 	public:
 		IniComment(){ ; }
-		IniComment(const std::string& s) : s_(s) {  trim_right();  }
+		IniComment(const std::string& s) : s_(s) {
+			trim_right();
+		}
 		IniComment& operator=(const std::string& s){
 			s_ = s;  trim_right();
 			return *this;
 		}
 
 		const std::string& get() const {  return s_;  }
-		bool empty() const {  return s_.empty();  }
-
 		void output(std::ostream& os, char prefix) const {
-			if( empty() ) return;
+			if( s_.empty() ) return;
 
 			// Output prefixing each line with a comment char
-			std::string cline;
 			std::istringstream ss(s_);
-			while( std::getline(ss, cline) )
-				os << prefix << cline << std::endl;
+			std::string line;
+			while( std::getline(ss, line) )
+				os << prefix << line << std::endl;
 		}
 	};
 
@@ -129,7 +129,7 @@ namespace ini
 		IniComment comment;
 
 		IniField(){ ; }
-		IniField(const std::string &value) : value_(value), comment("") { ; }
+		IniField(const std::string &value) : value_(value), comment() { ; }
 		IniField(const IniField &f) : value_(f.value_), comment(f.comment) { ; }
 		~IniField(){ ; }
 
@@ -152,9 +152,10 @@ namespace ini
 		}
 
 		bool asBool() const {
-			const char* TRUE[4]  = { "true", "yes", "y", "1" };
-			const char* FALSE[4] = { "false", "no", "n", "0" };
-			for( short i = 0; i < 4; ++i ){
+			const int N = 4;
+			const char* TRUE[N]  = { "true", "yes", "y", "1" };
+			const char* FALSE[N] = { "false", "no", "n", "0" };
+			for( short i = 0; i < N; ++i ){
 				if( strcasecmp(value_.c_str(), TRUE[i]) == 0 )
 					return true;
 				if( strcasecmp(value_.c_str(), FALSE[i]) == 0 )
@@ -230,27 +231,32 @@ namespace ini
 
 		~IniFile(){ ; }
 
-		void decode(std::istream &is) {
+		void decode(std::istream &is)
+		{
 			clear();
 			int lineNo = 0;
-			IniSection *currentSection = NULL;
-			std::string currentComment;
+			IniSection *cur_section = NULL;
+			std::string cur_comment;
+
 			// iterate file by line
-			while(!is.eof() && !is.fail()) {
+			while( is.good() ) // !is.eof() && !is.fail()
+			{
 				std::string line;
 				std::getline(is, line, '\n');
 				++lineNo;
 
-				// skip if line is empty
-				if(line.size() == 0)
-					continue;
+				if( line.empty() )  continue;
+
 				// if line is a comment append to comment lines
-				if(line[0] == commentChar_) {
-					currentComment += line.substr(1, std::string::npos) + "\n";
-				} else if(line[0] == '[') {
+				if(line[0] == commentChar_)
+				{
+					cur_comment += line.substr(1, std::string::npos) + "\n";
+				}
+				else if(line[0] == '[')
+				{
 					// line is a section
 					// check if the section is also closed on same line
-					std::size_t pos = line.find("]");
+					std::size_t pos = line.find(']');
 					if(pos == std::string::npos) {
 						std::stringstream ss;
 						ss << "l" << lineNo
@@ -274,17 +280,16 @@ namespace ini
 
 					// retrieve section name
 					std::string secName = line.substr(1, pos - 1);
-					currentSection = &((*this)[secName]);
-					if( ! currentComment.empty() ) {
-						currentSection->comment = currentComment;
-						currentComment.clear();
-					}
-				} else {
+					cur_section = &((*this)[secName]);
+					cur_section->comment = cur_comment;   cur_comment.clear();
+				}
+				else
+				{
 					// line is a field definition
 					// check if section was already opened
-					if(currentSection == NULL) {
+					if(cur_section == NULL) {
 						// field has no section -> create one with empty name
-						currentSection = &((*this)[""]);
+						cur_section = &((*this)[""]);
 					}
 
 					// find key value separator
@@ -298,12 +303,9 @@ namespace ini
 					std::string name = line.substr(0, pos);
 					std::string value = line.substr(pos + 1, std::string::npos);
 
-					IniField& field = (*currentSection)[name];
+					IniField& field = (*cur_section)[name];
 					field = value;
-					if( ! currentComment.empty() ) {
-						field.comment = currentComment;
-						currentComment.clear();
-					}
+					field.comment = cur_comment;  cur_comment.clear();
 				}
 			}
 		}
