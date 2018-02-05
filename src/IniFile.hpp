@@ -28,6 +28,9 @@
 
 namespace ini
 {
+	/************************************
+	 *          ordered_map
+	 ************************************/
 	// Map that keeps the insertion order
 	template<typename T>  class ordered_map {
 		typedef const std::string                    Tkey;
@@ -80,18 +83,54 @@ namespace ini
 	};
 
 	/************************************
+	 *          IniComment
+	 ************************************/
+	class IniComment
+	{
+		std::string s_;
+
+		void trim_right(){	// Cuts last '\n'
+			const std::size_t n = s_.length() - 1;
+			if( s_[n] == '\n' )
+				s_.resize(n);
+		}
+	public:
+		IniComment(){ ; }
+		IniComment(const std::string& s) : s_(s) {  trim_right();  }
+		IniComment& operator=(const std::string& s){
+			s_ = s;  trim_right();
+			return *this;
+		}
+
+		const std::string& get() const {  return s_;  }
+		bool empty() const {  return s_.empty();  }
+
+		void output(std::ostream& os, char prefix) const {
+			if( empty() ) return;
+
+			// Output prefixing each line with a comment char
+			std::string cline;
+			std::istringstream ss(s_);
+			while( std::getline(ss, cline) )
+				os << prefix << cline << std::endl;
+		}
+	};
+
+
+	/************************************
 	 *          IniField
 	 ************************************/
 	class IniField
 	{
 	private:
 		std::string value_;
-		std::string comment_;
 
 	public:
+		IniComment comment;
+
 		IniField(){ ; }
-		IniField(const std::string &value) : value_(value), comment_("") { ; }
-		IniField(const IniField &f) : value_(f.value_), comment_(f.comment_) { ; }
+		IniField(const std::string &value) : value_(value), comment("") { ; }
+		IniField(const IniField &f) : value_(f.value_), comment(f.comment) { ; }
 		~IniField(){ ; }
 
 		const std::string &asString() const {
@@ -124,13 +163,9 @@ namespace ini
 			throw std::domain_error("field is not a bool");
 		}
 
-		const std::string& comment() const {
-			return comment_;
-		}
-
 		IniField &operator=(const IniField &field) {
 			value_ = field.value_;
-			comment_ = field.comment_;
+			comment = field.comment;
 			return *this;
 		}
 
@@ -155,14 +190,6 @@ namespace ini
 			value_ = value;
 			return *this;
 		}
-
-		void comment(const std::string& comment){
-			comment_ = comment;
-			// cut last '\n'
-			const std::size_t n = comment.length() - 1;
-			if( comment[n] == '\n' )
-				comment_.resize(n);
-		}
 	};
 
 	/************************************
@@ -170,30 +197,17 @@ namespace ini
 	 ************************************/
 	class IniSection : public ordered_map<IniField>
 	{
-	private:
-		std::string comment_;
-
 	public:
+		IniComment comment;
+
 		IniSection() { ; }
 		~IniSection() { ; }
-
-		const std::string& comment() const {
-			return comment_;
-		}
-		void comment(const std::string& comment) {
-			comment_ = comment;
-			// cut last '\n'
-			const std::size_t n = comment.length() - 1;
-			if( comment[n] == '\n' )
-				comment_.resize(n);
-		}
 	};
 
 
 	/************************************
 	 *          IniFile
 	 ************************************/
-
 	class IniFile : public ordered_map<IniSection>
 	{
 	private:
@@ -201,16 +215,16 @@ namespace ini
 		char commentChar_;
 
 	public:
-		IniFile(const char fieldSep = '=', const char comment = ';')
-			: fieldSep_(fieldSep), commentChar_(comment) {
+		IniFile(const char s = '=', const char c = ';')
+			: fieldSep_(s), commentChar_(c) {
 		}
-		IniFile(const std::string &fileName, const char fieldSep = '=', const char comment = ';')
-			: fieldSep_(fieldSep), commentChar_(comment) {
-			load(fileName);
+		IniFile(const std::string &fn, const char s = '=', const char c = ';')
+			: fieldSep_(s), commentChar_(c) {
+			load(fn);
 		}
 
-		IniFile(std::istream &is, const char fieldSep = '=', const char comment = ';')
-			: fieldSep_(fieldSep), commentChar_(comment) {
+		IniFile(std::istream &is, const char s = '=', const char c = ';')
+			: fieldSep_(s), commentChar_(c) {
 			decode(is);
 		}
 
@@ -262,7 +276,7 @@ namespace ini
 					std::string secName = line.substr(1, pos - 1);
 					currentSection = &((*this)[secName]);
 					if( ! currentComment.empty() ) {
-						currentSection->comment(currentComment);
+						currentSection->comment = currentComment;
 						currentComment.clear();
 					}
 				} else {
@@ -287,7 +301,7 @@ namespace ini
 					IniField& field = (*currentSection)[name];
 					field = value;
 					if( ! currentComment.empty() ) {
-						field.comment(currentComment);
+						field.comment = currentComment;
 						currentComment.clear();
 					}
 				}
@@ -301,23 +315,18 @@ namespace ini
 
 		void encode(std::ostream &os)
 		{
-			IniFile::iterator it;
 			// iterate through all sections in this file
-			for(it = this->begin(); it != this->end(); ++it) {
+			for(IniFile::iterator it = this->begin(); it != this->end(); ++it) {
 				if( it != begin() ) os << std::endl;
-				if( ! it->second.comment().empty() )
-					os << "; " << it->second.comment() << std::endl;
-				os << "[" << it->first << "]" << std::endl;
+				it->second.comment.output(os, commentChar_);
+				if( ! it->first.empty() )
+					os << "[" << it->first << "]" << std::endl;
 
-				IniSection::iterator secIt;
 				// iterate through all fields in the section
-				for(secIt = it->second.begin(); secIt != it->second.end(); ++secIt) {
+				for(IniSection::iterator secIt = it->second.begin(); secIt != it->second.end(); ++secIt) {
 					const IniField& field = secIt->second;
-					if( ! field.comment().empty() )
-						os << "; " << field.comment() << std::endl;
-
-					os << secIt->first << fieldSep_ << field.asString()
-					   << std::endl;
+					field.comment.output(os, commentChar_);
+					os << secIt->first << fieldSep_ << field.asString() << std::endl;
 				}
 			}
 		}

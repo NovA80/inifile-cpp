@@ -115,8 +115,20 @@ TEST_CASE("parse with comment", "IniFile")
     REQUIRE(inif.size() == 1);
     REQUIRE(inif["Foo"].size() == 1);
     REQUIRE(inif["Foo"]["bar"].asString() == "bla");
-	REQUIRE(inif["Foo"]["bar"].comment() == " this is a test");
+	REQUIRE(inif["Foo"]["bar"].comment.get() == " this is a test");
 }
+
+TEST_CASE("parse with multiline comment", "IniFile")
+{
+	std::istringstream ss("[Foo]\n; comment line1\n; comment line2\nbar=bla");
+	ini::IniFile inif(ss);
+
+	REQUIRE(inif.size() == 1);
+	REQUIRE(inif["Foo"].size() == 1);
+	REQUIRE(inif["Foo"]["bar"].asString() == "bla");
+	REQUIRE(inif["Foo"]["bar"].comment.get() == " comment line1\n comment line2");
+}
+
 
 TEST_CASE("parse with custom comment char", "IniFile")
 {
@@ -179,7 +191,7 @@ TEST_CASE("save with custom field sep", "IniFile")
 TEST_CASE("save with comments", "IniFile")
 {
 	ini::IniFile inif;
-	inif["Foo"].comment("comment");
+	inif["Foo"].comment = " comment";
 	inif["Foo"]["bar1"] = 1.2;
 	inif["Foo"]["bar2"] = -2.4;
 
