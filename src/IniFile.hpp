@@ -304,10 +304,10 @@ namespace ini
 			IniFile::iterator it;
 			// iterate through all sections in this file
 			for(it = this->begin(); it != this->end(); ++it) {
+				if( it != begin() ) os << std::endl;
 				if( ! it->second.comment().empty() )
-					os << ";" << it->second.comment() << std::endl;
-				if( ! it->first.empty() )
-					os << "[" << it->first << "]" << std::endl;
+					os << "; " << it->second.comment() << std::endl;
+				os << "[" << it->first << "]" << std::endl;
 
 				IniSection::iterator secIt;
 				// iterate through all fields in the section

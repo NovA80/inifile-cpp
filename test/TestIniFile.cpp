@@ -179,7 +179,7 @@ TEST_CASE("save with custom field sep", "IniFile")
 TEST_CASE("save with comments", "IniFile")
 {
 	ini::IniFile inif;
-	inif["Foo"].comment(" comment");
+	inif["Foo"].comment("comment");
 	inif["Foo"]["bar1"] = 1.2;
 	inif["Foo"]["bar2"] = -2.4;
 
