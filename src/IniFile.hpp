@@ -50,8 +50,8 @@ namespace ini
 			iterator(){ ; }
 			iterator(const Torder_iter& it) : it_(it){ ; }
 
-			bool operator==(const iterator& that){  return *it_ == *that.it_;  }
-			bool operator!=(const iterator& that){  return *it_ != *that.it_;  }
+			bool operator==(const iterator& that){  return it_ == that.it_;  }
+			bool operator!=(const iterator& that){  return it_ != that.it_;  }
 
 			iterator& operator++(){  it_++;  return *this;  }
 			std::pair<Tkey, T>& operator*(){ return **it_; }
@@ -90,6 +90,7 @@ namespace ini
 		std::string s_;
 
 		void trim_eol(){	// Cuts last '\n'
+			if( s_.empty() )  return;
 			const std::size_t n = s_.length() - 1;
 			if( s_[n] == '\n' )
 				s_.resize(n);
