@@ -153,12 +153,12 @@ namespace ini
 
 		bool asBool() const {
 			const int N = 4;
-			const char* TRUE[N]  = { "true", "yes", "y", "1" };
-			const char* FALSE[N] = { "false", "no", "n", "0" };
+			const char* TT[N] = { "true", "yes", "y", "1" };
+			const char* FF[N] = { "false", "no", "n", "0" };
 			for( short i = 0; i < N; ++i ){
-				if( strcasecmp(value_.c_str(), TRUE[i]) == 0 )
+				if( strcasecmp(value_.c_str(), TT[i]) == 0 )
 					return true;
-				if( strcasecmp(value_.c_str(), FALSE[i]) == 0 )
+				if( strcasecmp(value_.c_str(), FF[i]) == 0 )
 					return false;
 			}
 			throw std::domain_error("field is not a bool");
