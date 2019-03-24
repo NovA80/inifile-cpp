@@ -2,7 +2,6 @@
 #include "catch.hpp"
 #include "IniFile.hpp"
 
-#include <sstream>
 
 TEST_CASE("parse ini file", "IniFile")
 {

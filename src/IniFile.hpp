@@ -29,10 +29,11 @@
 namespace ini
 {
 	/************************************
-	 *          ordered_map
+	 * LinkedMap
+	 *
+	 * Map which preserves the order of insertion
 	 ************************************/
-	// Map that keeps the insertion order
-	template<typename T>  class ordered_map {
+	template<typename T>  class LinkedMap {
 		typedef const std::string                    Tkey;
 		typedef std::map<Tkey, T>                    Tdata;
 		typedef typename std::map<Tkey,T>::iterator  Tdata_iter;
@@ -46,6 +47,7 @@ namespace ini
 		// Wrapper for iterator in Torder vector
 		class iterator {
 			Torder_iter it_;
+
 		public:
 			iterator(){ ; }
 			iterator(const Torder_iter& it) : it_(it){ ; }
@@ -72,7 +74,7 @@ namespace ini
 
 		std::size_t size() const {  return data_.size();  }
 
-		bool member(const Tkey& k){
+		bool has(const Tkey& k){
 			return data_.find(k) != data_.end();
 		}
 
@@ -197,20 +199,19 @@ namespace ini
 	/************************************
 	 *          IniSection
 	 ************************************/
-	class IniSection : public ordered_map<IniField>
+	class IniSection : public LinkedMap<IniField>
 	{
 	public:
 		IniComment comment;
 
 		IniSection() { ; }
-		~IniSection() { ; }
 	};
 
 
 	/************************************
 	 *          IniFile
 	 ************************************/
-	class IniFile : public ordered_map<IniSection>
+	class IniFile : public LinkedMap<IniSection>
 	{
 	private:
 		char fieldSep_;
@@ -229,8 +230,6 @@ namespace ini
 			: fieldSep_(s), commentChar_(c) {
 			decode(is);
 		}
-
-		~IniFile(){ ; }
 
 		void decode(std::istream &is)
 		{
