@@ -1,4 +1,3 @@
-src/IniFile.cpp
 src/IniFile.hpp
 test/TestIniFile.cpp
 LICENSE.txt
