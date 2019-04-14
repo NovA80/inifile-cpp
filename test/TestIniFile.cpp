@@ -217,6 +217,18 @@ TEST_CASE("save keeping order", "IniFile")
 	REQUIRE(result == ss.str());
 }
 
+TEST_CASE("copy data", "IniFile")
+{
+	std::istringstream ss("[Foo]\nb=first\na=second\n");
+
+	ini::IniFile ini2;
+	{
+		ini::IniFile ini1(ss);
+		ini2 = ini1;
+	}
+
+	REQUIRE(ini2.encode() == ss.str());
+}
 
 /***************************************************
  *                Failing Tests

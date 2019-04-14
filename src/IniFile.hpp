@@ -29,58 +29,42 @@
 namespace ini
 {
 	/************************************
-	 * LinkedMap
+	 * OrderedMap
 	 *
 	 * Map which preserves the order of insertion
+	 * Minimal subset of functionality
 	 ************************************/
-	template<typename T>  class LinkedMap {
-		typedef const std::string                    Tkey;
-		typedef std::map<Tkey, T>                    Tdata;
-		typedef typename std::map<Tkey,T>::iterator  Tdata_iter;
-		typedef std::vector<Tdata_iter>              Torder;
-		typedef typename Torder::iterator            Torder_iter;
+	template<typename K, typename T>  class OrderedMap {
+		typedef  typename std::pair<K, T>                 Value;
+		typedef  typename std::vector<Value>::size_type   Index;
 
-		Tdata data_;
-		Torder order_; // insertion order
+		std::vector<Value> data_;  // data in insertion order
+		std::map<K, Index> lookup_;  // lookup table
 
 	public:
-		// Wrapper for iterator in Torder vector
-		class iterator {
-			Torder_iter it_;
+		typedef  typename std::vector<Value>::iterator    iterator;
+		iterator begin(){  return data_.begin();  }
+		iterator end(){  return data_.end();  }
 
-		public:
-			iterator(){ ; }
-			iterator(const Torder_iter& it) : it_(it){ ; }
-
-			bool operator==(const iterator& that){  return it_ == that.it_;  }
-			bool operator!=(const iterator& that){  return it_ != that.it_;  }
-
-			iterator& operator++(){  it_++;  return *this;  }
-			std::pair<Tkey, T>& operator*(){ return **it_; }
-			std::pair<Tkey, T>* operator->(){  return it_->operator->();  }
-		};
-		iterator begin(){  return iterator(order_.begin());  }
-		iterator end(){  return iterator(order_.end());  }
-
-		T& operator[](const std::string& s){
-			std::pair<Tdata_iter, bool> res =
-				data_.insert( std::make_pair(s, T()) );
-
-			if( res.second ) // new value was inserted
-				order_.push_back(res.first);
-
-			return res.first->second;
+		T& operator[](const K& k) {
+			typename std::map<K, Index>::iterator p = lookup_.find(k);
+			if( p != lookup_.end() ) {
+				return data_[p->second].second;
+			} else {
+				data_.push_back( std::make_pair(k, T()) );
+				lookup_[k] = data_.size() - 1;  // index of just added value
+				return data_.back().second;
+			}
 		}
 
 		std::size_t size() const {  return data_.size();  }
 
-		bool has(const Tkey& k){
-			return data_.find(k) != data_.end();
+		bool has(const K& k){
+			return lookup_.find(k) != lookup_.end();
 		}
 
 		void clear(){
-			data_.clear();
-			order_.clear();
+			data_.clear();  lookup_.clear();
 		}
 	};
 
@@ -199,7 +183,7 @@ namespace ini
 	/************************************
 	 *          IniSection
 	 ************************************/
-	class IniSection : public LinkedMap<IniField>
+	class IniSection : public OrderedMap<std::string, IniField>
 	{
 	public:
 		IniComment comment;
@@ -211,7 +195,7 @@ namespace ini
 	/************************************
 	 *          IniFile
 	 ************************************/
-	class IniFile : public LinkedMap<IniSection>
+	class IniFile : public OrderedMap<std::string, IniSection>
 	{
 	private:
 		char fieldSep_;
